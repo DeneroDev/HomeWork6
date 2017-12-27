@@ -13,8 +13,7 @@ import android.widget.*
 import android.content.Intent
 import android.support.v4.content.FileProvider
 import android.widget.EditText
-
-
+import java.io.FileOutputStream
 
 
 /**
@@ -112,7 +111,6 @@ class PhotoAdapter(var data:ArrayList<File>):RecyclerView.Adapter<PhotoAdapter.P
 
     class PhotoViewHolder(var v: View): RecyclerView.ViewHolder(v){
         var img: ImageView = v.photo
-
 
 
 

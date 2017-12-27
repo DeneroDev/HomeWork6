@@ -18,10 +18,7 @@ import android.provider.MediaStore
 import android.support.v4.content.FileProvider
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.view.ContextMenu
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
+import android.view.*
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -99,12 +96,42 @@ class MainActivity : AppCompatActivity() {
                 try {
                     var file = File(Environment.getExternalStorageDirectory().absolutePath)
                     data = DataNotify.instance.dataNotify(file)
+                    list.adapter = PhotoAdapter(data)
                     list.adapter.notifyDataSetChanged()
                     true
                 }catch (e:OutOfMemoryError){
                     Toast.makeText(this,"Слишком много фотографий и файлов",Toast.LENGTH_LONG).show()
                     false
                 }
+            }
+            R.id.download_img_url ->{
+                var builder = AlertDialog.Builder(this)
+                var inflater = this.layoutInflater
+                var linearLayout = inflater.inflate(R.layout.create_dialog_uri,null)
+                var edtUri = linearLayout.findViewById<EditText>(R.id.edt_rename)
+                builder.setView(linearLayout)
+                        .setPositiveButton("OK",object: DialogInterface.OnClickListener{
+                            override fun onClick(p0: DialogInterface?, p1: Int) {
+                                val url = edtUri.text.toString()
+                                if (url == "" || ! url.endsWith(".jpg")) {
+                                    Toast.makeText(applicationContext,
+                                            "Please enter a valid .jpg link",
+                                            Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val task = GetImageByURLTask()
+                                    task.execute(url)
+                                }
+                            }
+                        })
+                        .setNegativeButton("Cancel",object: DialogInterface.OnClickListener{
+                            override fun onClick(p0: DialogInterface?, p1: Int) {
+                                p0?.cancel()
+                            }
+                        })
+
+                builder.create()
+                builder.show()
+                true
             }
             else -> super.onOptionsItemSelected(item)
         }
@@ -118,6 +145,29 @@ class MainActivity : AppCompatActivity() {
         getPreferences(Context.MODE_PRIVATE).edit()
                 .putInt("MASS",getPhotoMass()+1)
                 .apply()
+    }
+
+    inner class GetImageByURLTask : AsyncTask<String, Void, Bitmap>() {
+        override fun doInBackground(vararg p0: String?): Bitmap {
+            val file = File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DCIM),
+                    System.currentTimeMillis().toString() + ".jpg"
+            )
+            file.createNewFile()
+
+            val outStream = FileOutputStream(file)
+
+            val url = URL(p0[0])
+            outStream.write(url.readBytes())
+            outStream.close()
+
+            return BitmapFactory.decodeFile(file.absolutePath)
+        }
+
+        override fun onPostExecute(result: Bitmap?) {
+            super.onPostExecute(result)
+            DataNotify.instance.dataUpdate(list)
+        }
     }
 
 }
